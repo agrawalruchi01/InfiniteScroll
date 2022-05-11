@@ -1,56 +1,75 @@
-const quoteContainer = document.getElementById("quote-container");
-const quotetxt = document.getElementById("quote");
-const author = document.getElementById("author");
-const twitterBtn = document.getElementById("twitter-button");
-const newQuoteBtn = document.getElementById("new-quote");
+// Unsplash API
+const count = 30;
+const apiKey = 'mHs09c-Kfz4yXUq9CMkgoHX_BdBJjOIPwErHwesWX00';
+const apiUrl = `https://api.unsplash.com/photos/random/?client_id=${apiKey}&count=${count}`;
+const imageContainer = document.getElementById("image-container");
+const loader = document.getElementById('loader');
 
-const loader = document.getElementById("loader");
+let ready = false;
+let imagesloaded = 0;
+let totalImages = 0;
 
-let apiQuotes = []
-
-// Show new quote
-function newQuote() {
-    loading();
-    const quote = apiQuotes[Math.floor(Math.random() * apiQuotes.length)];
-    author.textContent = quote.author;
-    quotetxt.textContent = quote.text;
-    complete();
-}
-
-// get quotes From API
-async function getQuotes() {
-    loading();
-    const apiUrl = 'https://type.fit/api/quotes';
-    try{
-        const response = await fetch(apiUrl);
-        apiQuotes = await response.json(response.json);
-        newQuote();
-    }catch(error) {
-        alert(error);
-       //catch error here
+// Check if all images were loaded
+function imageLoad() {
+    imagesloaded++;
+    if(imagesloaded === totalImages) {
+        ready = true;
+        loader.hidden = true;
     }
 }
 
-//Tweet Quote
-function tweetQuote() {
-    const twitterUrl = `http://twitter.com/intent/tweet/?text=${quote.textContent} - ${author.textContent}`;
-    window.open(twitterUrl, '_blank');
+let photoArray = [];
+
+// Get photos from unsplash api
+async function getPhotos() {
+    try {
+        const response = await fetch(apiUrl);
+        photoArray = await response.json();
+        displayPhotos();
+    } catch (error) {
+        // catch error here
+    }
 }
 
-twitterBtn.addEventListener('click', tweetQuote);
-newQuoteBtn.addEventListener('click', newQuote);
-
-//show Loading
-function loading() {
-  loader.hidden = false;
-  quoteContainer.hidden = true;
+function setAttributes(element, attributes) {
+    for (const key in attributes) {
+        element.setAttribute(key, attributes[key]);
+    }
 }
 
-//Hide Loading
-function complete() {
-    quoteContainer.hidden = false;
-    loader.hidden = true;
+// Create elements for links and photos and add to DOM
+function displayPhotos() {
+    imagesloaded=0;
+    totalImages = photoArray.length;
+    photoArray.forEach((photos) => {
+        const item = document.createElement('a');
+        setAttributes(item, {
+            href: photos.links.html,
+            target: '_blank'
+        })
+
+        const image = document.createElement('img');
+
+        setAttributes(image, {
+            src: photos.urls.regular,
+            alt: photos.alt_description,
+            title: photos.alt_description
+        })
+        // Event listener, check when each is finished loadinf
+        image.addEventListener('load', imageLoad)
+        item.appendChild(image);
+        imageContainer.appendChild(item);
+    })
 }
 
-//on Load
-getQuotes();
+
+//check to see if scrolling near bottom
+window.addEventListener('scroll', () => {
+    if(window.innerHeight + window.scrollY >=  document.body.offsetHeight - 1000 && ready) {
+         ready = false;
+         getPhotos(); 
+    }
+})
+
+// On Load
+getPhotos();
